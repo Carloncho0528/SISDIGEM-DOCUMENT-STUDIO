@@ -1,0 +1,338 @@
+# Version 0.2 — First Desktop Application
+
+
+
+**Release:** Version 0.2  
+**Language:** Python  
+**Status:** Desktop Prototype  
+**Date:** 2026
+
+---
+
+# A New Challenge
+
+Version 0.1 proved that repetitive document processing could be automated.
+
+Reading a document, extracting structured information, and exporting it to a spreadsheet was no longer a manual task.
+
+However, a new challenge quickly appeared.
+
+The problem was no longer processing one document.
+
+The problem was processing dozens or even hundreds of documents efficiently.
+
+A simple script was no longer enough.
+
+The project needed to evolve.
+
+---
+
+# The Problem
+
+Many professionals work with large collections of documents.
+
+Examples include:
+
+- Research reports
+- Meeting records
+- Exported conversations
+- System logs
+- HTML documents
+- Documentation archives
+
+Although each document could be processed individually, repeating the same operation hundreds of times wasted valuable time.
+
+Users needed a solution capable of:
+
+- Selecting an entire folder.
+- Finding every compatible document automatically.
+- Processing all files without manual intervention.
+- Producing structured outputs ready for analysis.
+
+---
+
+# The Evolution
+
+Instead of extending the original script indefinitely, Version 0.2 introduced the project's first graphical user interface.
+
+This represented a major milestone.
+
+The software was no longer intended only for developers.
+
+It became accessible to any user.
+
+The focus shifted from writing scripts to delivering a practical desktop application.
+
+---
+
+# Engineering Decisions
+
+Several architectural improvements were introduced.
+
+## Modular Design
+
+The code was divided into independent functions.
+
+Instead of a single script performing every task, responsibilities were separated into logical modules.
+
+Example:
+
+Create Interface
+
+↓
+
+Select Folder
+
+↓
+
+Search Documents
+
+↓
+
+Extract Information
+
+↓
+
+Generate Dataset
+
+↓
+
+Export Results
+
+This structure made future maintenance significantly easier.
+
+---
+
+## Graphical User Interface
+
+A desktop interface was developed using Tkinter.
+
+Users could now:
+
+- Select folders visually.
+- Start processing with one click.
+- Monitor execution progress.
+- Receive completion statistics.
+- View error messages.
+
+No programming knowledge was required.
+
+---
+
+## Batch Processing
+
+One of the most important improvements.
+
+Instead of processing a single document:
+
+Version 0.2 automatically:
+
+- Searches entire folders.
+- Includes subdirectories.
+- Processes every supported document.
+- Consolidates all extracted information into one dataset.
+
+---
+
+## Better Error Handling
+
+Real-world documents are rarely perfect.
+
+Version 0.2 introduced:
+
+- Exception handling
+- Logging
+- Fault tolerance
+
+If one document failed, the application continued processing the remaining files.
+
+This greatly improved reliability.
+
+---
+
+## Logging
+
+A complete log file was generated during execution.
+
+The application records:
+
+- Processing start
+- Processing end
+- Warnings
+- Errors
+- Failed files
+
+This became essential for debugging and future improvements.
+
+---
+
+## Export Improvements
+
+Version 0.1 generated CSV files.
+
+Version 0.2 expanded the output capabilities.
+
+Supported exports:
+
+- CSV
+- Microsoft Excel (.xlsx)
+
+This made the generated datasets immediately usable in spreadsheet software and analytical tools.
+
+---
+
+# Technologies
+
+The application was developed using:
+
+- Python
+- Tkinter
+- BeautifulSoup
+- Pandas
+- OpenPyXL
+- Logging
+
+---
+
+# New Features
+
+Version 0.2 introduced:
+
+- Desktop graphical interface
+- Folder selection
+- Recursive directory scanning
+- Batch document processing
+- Progress bar
+- Execution statistics
+- Automatic logging
+- Excel export
+- Better exception handling
+- Improved date processing
+
+---
+
+# Software Architecture
+
+User
+
+↓
+
+Graphical Interface
+
+↓
+
+Folder Selection
+
+↓
+
+Document Discovery
+
+↓
+
+HTML Parser
+
+↓
+
+Structured Dataset
+
+↓
+
+CSV Export
+
+↓
+
+Excel Export
+
+---
+
+# Results
+
+The second version dramatically improved productivity.
+
+Users no longer needed to process documents individually.
+
+Entire collections could now be transformed automatically.
+
+The software became:
+
+- Faster
+- Easier to use
+- More reliable
+- More scalable
+
+Most importantly, it became useful for users without programming experience.
+
+---
+
+# Lessons Learned
+
+Version 0.2 revealed an important engineering principle.
+
+Users should focus on their work—not on operating software.
+
+Automation is valuable only when it simplifies the user's workflow.
+
+This idea became one of the core principles of SISDIGEM Document Studio.
+
+---
+
+# Limitations
+
+Although Version 0.2 represented a major improvement, several limitations remained.
+
+The application still:
+
+- Focused primarily on HTML documents.
+- Used a monolithic architecture.
+- Supported a limited number of export formats.
+- Had no plugin system.
+- Could not be extended easily.
+- Was implemented entirely in Python.
+
+These observations motivated the redesign planned for future versions.
+
+---
+
+# The Vision Changed
+
+During the development of Version 0.2, something important became clear.
+
+The project was never really about processing HTML files.
+
+It was about transforming documents efficiently.
+
+This realization expanded the project's scope.
+
+Instead of building another converter, the goal became creating a complete document engineering platform capable of supporting multiple formats, automation workflows, artificial intelligence, and cross-platform technologies.
+
+This marked the true beginning of SISDIGEM Document Studio.
+
+---
+
+# Historical Importance
+
+Version 0.2 represents the transition from a simple prototype to a real software application.
+
+It introduced concepts such as modularity, usability, automation, reliability, and scalability.
+
+Many architectural decisions made during this version would later influence the migration toward more advanced technologies and the long-term vision of the project.
+
+---
+
+# Looking Ahead
+
+Version 0.2 answered an important question:
+
+> **How can we process entire collections of documents automatically?**
+
+The next question would be even more ambitious:
+
+> **Why should users be limited to HTML documents?**
+
+That question would shape the development of future versions, where support for multiple document formats and a more flexible architecture became the next engineering objective.
+
+---
+
+**Next Chapter**
+
+➡ **Version 0.3 — Multi-Format Document Processing**
