@@ -1,0 +1,223 @@
+import os
+import tkinter as tk
+from tkinter import filedialog, ttk, messagebox
+from datetime import datetime
+import pandas as pd
+from bs4 import BeautifulSoup
+import logging
+from pathlib import Path
+
+# ====================== CONFIGURACIÓN DE LOGGING ======================
+logging.basicConfig(
+    filename='telegram_extractor.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    encoding='utf-8'
+)
+
+# ====================== FUNCIÓN DE EXTRACCIÓN ======================
+def extraer_mensajes_de_archivo(ruta_html):
+    datos = []
+    try:
+        with open(ruta_html, 'r', encoding='utf-8') as f:
+            soup = BeautifulSoup(f, 'html.parser')
+    except Exception as e:
+        logging.error(f"Error leyendo archivo {ruta_html}: {e}")
+        return datos
+
+    mensajes = soup.select('div.message')
+
+    for msg in mensajes:
+        try:
+            # Usuario
+            nombre_tag = msg.select_one('div.from_name')
+            nombre = nombre_tag.get_text(strip=True) if nombre_tag else 'Sistema/Desconocido'
+
+            # Fecha y Hora
+            fecha_tag = msg.select_one('div.date')
+            fecha_hora = fecha_tag.get('title') if fecha_tag and fecha_tag.get('title') else ''
+            if not fecha_hora:
+                fecha_hora = fecha_tag.get_text(strip=True) if fecha_tag else ''
+
+            # Texto principal
+            texto_tag = msg.select_one('div.text')
+            texto = texto_tag.get_text(strip=True) if texto_tag else ''
+
+            # Reenviados
+            if not texto:
+                forwarded = msg.select_one('div.forwarded, .forwarded')
+                if forwarded:
+                    fwd_text = forwarded.select_one('div.text')
+                    texto = f"[REENVIADO] {fwd_text.get_text(strip=True) if fwd_text else ''}"
+
+            # Multimedia
+            if not texto:
+                media = msg.select_one('div.media, div.photo_wrap, div.video_file_wrap, div.document, div.sticker')
+                if media:
+                    title = media.select_one('div.title, .title, .bold')
+                    texto = f"[MEDIA] {title.get_text(strip=True) if title else 'Archivo multimedia'}"
+
+            if not texto:
+                texto = "[Mensaje sin texto o solo media]"
+
+            # Tipo de mensaje
+            msg_classes = ' '.join(msg.get('class', []))
+            if 'service' in msg_classes:
+                tipo = 'Servicio'
+            elif 'forwarded' in msg_classes or '[REENVIADO]' in texto:
+                tipo = 'Reenviado'
+            elif 'reply' in msg_classes:
+                tipo = 'Respuesta'
+            else:
+                tipo = 'Normal'
+
+            datos.append({
+                'Usuario': nombre,
+                'Fecha_Hora': fecha_hora,
+                'Mensaje': texto,
+                'Tipo': tipo,
+                'Tiene_Media': '[MEDIA]' in texto or 'photo' in str(msg),
+                'Archivo_Origen': os.path.basename(ruta_html)
+            })
+
+        except Exception as e:
+            logging.warning(f"Error procesando un mensaje en {ruta_html}: {e}")
+            continue
+
+    return datos
+
+
+# ====================== PROCESAMIENTO DE CARPETA ======================
+def procesar_carpeta(carpeta, barra_progreso, label_estado, root):
+    if not carpeta or not os.path.isdir(carpeta):
+        messagebox.showerror("Error", "Por favor selecciona una carpeta válida.")
+        return
+
+    # Buscar todos los archivos HTML
+    archivos_html = []
+    for root_dir, _, files in os.walk(carpeta):
+        for file in files:
+            if file.lower().endswith('.html'):
+                archivos_html.append(os.path.join(root_dir, file))
+
+    if not archivos_html:
+        messagebox.showwarning("Sin archivos", "No se encontraron archivos .html en la carpeta.")
+        return
+
+    label_estado.config(text=f"Procesando {len(archivos_html)} archivos...")
+    barra_progreso['maximum'] = len(archivos_html)
+    barra_progreso['value'] = 0
+    root.update_idletasks()
+
+    datos_totales = []
+    archivos_fallidos = 0
+
+    for i, archivo in enumerate(archivos_html):
+        label_estado.config(text=f"Leyendo: {os.path.basename(archivo)} ({i+1}/{len(archivos_html)})")
+        root.update_idletasks()
+
+        try:
+            datos = extraer_mensajes_de_archivo(archivo)
+            datos_totales.extend(datos)
+        except Exception as e:
+            logging.error(f"Fallo procesando {archivo}: {e}")
+            archivos_fallidos += 1
+
+        barra_progreso['value'] = i + 1
+        root.update_idletasks()
+
+    if not datos_totales:
+        messagebox.showinfo("Resultado", "No se extrajeron mensajes.")
+        return
+
+    # Crear DataFrame
+    df = pd.DataFrame(datos_totales)
+    
+    # Conversión segura de fechas (CORREGIDO)
+    if 'Fecha_Hora' in df.columns and not df['Fecha_Hora'].empty:
+        try:
+            df['Fecha'] = pd.to_datetime(df['Fecha_Hora'], dayfirst=True, errors='coerce')
+            # Eliminar zona horaria (obligatorio para Excel)
+            if pd.api.types.is_datetime64_any_dtype(df['Fecha']):
+                df['Fecha'] = df['Fecha'].dt.tz_localize(None)
+        except Exception as e:
+            logging.warning(f"Error convirtiendo fechas: {e}")
+            df['Fecha'] = pd.NaT
+
+    # Guardar archivos
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ruta_base = Path(carpeta)
+
+    try:
+        df.to_csv(ruta_base / f"chat_completo_{timestamp}.csv", index=False, encoding='utf-8')
+        df.to_excel(ruta_base / f"chat_completo_{timestamp}.xlsx", index=False, engine='openpyxl')
+
+        resumen = f"✅ ¡Proceso completado exitosamente!\n\n"
+        resumen += f"Archivos procesados : {len(archivos_html)}\n"
+        resumen += f"Mensajes extraídos  : {len(df):,}\n"
+        resumen += f"Usuarios únicos     : {df['Usuario'].nunique()}\n"
+        resumen += f"Archivos fallidos   : {archivos_fallidos}\n\n"
+        resumen += f"Archivos guardados en:\n{carpeta}"
+
+        label_estado.config(text="✅ ¡Completado!")
+        messagebox.showinfo("Éxito", resumen)
+        logging.info(f"Procesamiento finalizado: {len(df)} mensajes")
+
+    except Exception as e:
+        messagebox.showerror("Error al guardar", f"No se pudo guardar los archivos:\n{str(e)}")
+        logging.error(f"Error guardando archivos: {e}")
+
+
+# ====================== INTERFAZ GRÁFICA ======================
+def crear_interfaz():
+    root = tk.Tk()
+    root.title("📊 Telegram Chat Extractor PRO v2")
+    root.geometry("700x400")
+    root.resizable(False, False)
+    root.configure(bg='#f0f0f0')
+
+    frame = tk.Frame(root, bg='#f0f0f0', padx=30, pady=30)
+    frame.pack(fill=tk.BOTH, expand=True)
+
+    tk.Label(frame, text="Extractor Profesional de Chats Telegram", 
+             font=('Arial', 14, 'bold'), bg='#f0f0f0').pack(pady=(0, 20))
+
+    tk.Label(frame, text="Carpeta con los archivos HTML de Telegram:", 
+             font=('Arial', 10), bg='#f0f0f0').pack(anchor='w')
+
+    entry_ruta = tk.Entry(frame, font=('Arial', 10), state='readonly', width=80)
+    entry_ruta.pack(fill=tk.X, pady=8)
+
+    def seleccionar_carpeta():
+        carpeta = filedialog.askdirectory()
+        if carpeta:
+            entry_ruta.config(state='normal')
+            entry_ruta.delete(0, tk.END)
+            entry_ruta.insert(0, carpeta)
+            entry_ruta.config(state='readonly')
+
+    btn_buscar = tk.Button(frame, text="📁 Seleccionar Carpeta", command=seleccionar_carpeta,
+                           bg='#2196F3', fg='white', font=('Arial', 10, 'bold'), padx=15)
+    btn_buscar.pack(pady=5)
+
+    label_estado = tk.Label(frame, text="Esperando selección de carpeta...", 
+                           font=('Arial', 10), bg='#f0f0f0', fg='#333')
+    label_estado.pack(pady=(20, 5))
+
+    barra = ttk.Progressbar(frame, orient='horizontal', length=620, mode='determinate')
+    barra.pack(pady=8)
+
+    btn_procesar = tk.Button(frame, text="🚀 PROCESAR TODO Y GENERAR EXCEL + CSV", 
+                             command=lambda: procesar_carpeta(entry_ruta.get(), barra, label_estado, root),
+                             font=('Arial', 11, 'bold'), bg='#4CAF50', fg='white', height=2, padx=20)
+    btn_procesar.pack(pady=20)
+
+    tk.Label(frame, text="💡 Procesa todos los archivos .html (incluidas subcarpetas)\n"
+                         "Genera CSV + Excel + Log de errores (telegram_extractor.log)",
+             font=('Arial', 9), bg='#f0f0f0', fg='#555', justify='center').pack()
+
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    crear_interfaz()
